@@ -1,3 +1,4 @@
+const { response } = require('express');
 const contactModel= require('../models/contactModel');
 const userModel = require("../models/userModel");
 //admin can perform crud on  any number of contact details, regular user can perform crud on only his details
@@ -132,8 +133,61 @@ const update = await contactModel.findByIdAndUpdate(
 }
 }
 
+//delete contact
+const deleteContact = async (req,res) => {
+    try{
+const id=req.params.id;
+const userId= req.user.user.userId;
+// console.log(userId);
+const user = await contactModel.findOne({_id:id},'addedBy');
+// console.log(user.addedBy);
+if(userId !== user.addedBy)
+{
+   return res.status(404).json("You cannot delete this contact");
+}
+const deleted = await contactModel.findByIdAndDelete(id);
+if(!deleted){
+    return res.status(404).send("Contact not found");
+}
+return res.status(200).send("Contact deleted successfully");
+    }
+    catch(error){
+        return res.status(500).send("Failed to delete the record");
+    }
+}
+
+//get all contacts
+const getAllContacts = async (req,res)=> {
+try{
+const contacts= await contactModel.find();
+if(contacts.length===0){
+    return res.status(404).json("Contact list is empty");
+}
+res.status(200).json(contacts);
+}
+catch(error){
+    res.status(500).json("Error fetching contacts");
+}
+}
+
+//get contacts which are added by that particular user
+const getContacts = async (req,res)=> {
+    try{
+        const userId= req.user.user.userId;
+    const contacts= await contactModel.find({addedBy:userId});
+    if(contacts.length===0){
+        return res.status(404).json("Contact list of this user is empty");
+    }
+    res.status(200).json(contacts);
+    }
+    catch(error){
+        res.status(500).json("Error fetching contacts");
+    }
+    }
+
+
 module.exports = {
-  createContact,updateContact
+  createContact,updateContact,deleteContact,getAllContacts, getContacts
 };
 
   
